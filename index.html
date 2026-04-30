@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>장금지원하민 대만 여행</title>
+    <title>우리의 대만 여행</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -15,18 +15,15 @@
     </style>
 </head>
 <body>
-    <!-- 로딩 화면 -->
     <div id="loading-screen">
-        <div class="animate-bounce mb-4 text-4xl">🇹🇼</div>
-        <div>대만 여행 데이터 동기화 중...</div>
+        <div class="animate-spin mb-4 text-4xl">🇹🇼</div>
+        <div>대만 여행 데이터 연결 중...</div>
     </div>
 
     <div class="w-full max-w-md bg-[#FAFAFA] min-h-screen shadow-2xl relative pb-24 overflow-x-hidden">
-        <!-- 헤더 영역 -->
         <header class="bg-gradient-to-br from-indigo-100 via-purple-50 to-blue-50 px-6 pt-12 pb-8 rounded-b-[40px] shadow-sm relative overflow-hidden">
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-200 rounded-full mix-blend-multiply filter blur-2xl opacity-50"></div>
             <div class="absolute top-10 -left-10 w-32 h-32 bg-purple-200 rounded-full mix-blend-multiply filter blur-2xl opacity-50"></div>
-            
             <div class="relative z-10 flex justify-between items-start">
                 <div>
                     <div class="flex items-center text-indigo-500 mb-2">
@@ -37,9 +34,6 @@
                     <h1 class="text-3xl font-extrabold text-gray-800 leading-tight">우리의<br />대만 여행</h1>
                 </div>
                 <div class="flex items-center space-x-2 mt-2">
-                    <button id="undo-btn" class="bg-white/80 p-2 rounded-full shadow-sm text-gray-400 hover:text-indigo-500 transition-colors backdrop-blur-sm disabled:opacity-30" onclick="window.undoAction()" disabled>
-                        <i data-lucide="undo-2" class="w-5 h-5"></i>
-                    </button>
                     <button id="edit-toggle-btn" class="bg-white/80 p-2 rounded-full shadow-sm text-gray-600 hover:text-indigo-500 transition-colors backdrop-blur-sm" onclick="window.toggleEditMode()">
                         <i data-lucide="edit-3" class="w-5 h-5"></i>
                     </button>
@@ -48,17 +42,14 @@
         </header>
 
         <main class="px-5 -mt-4 relative z-20">
-            <!-- 일정표 뷰 -->
             <div id="itinerary-view">
                 <div id="trip-container"></div>
             </div>
-            <!-- 체크리스트 뷰 -->
             <div id="checklist-view" class="hidden pb-8">
                 <div id="checklist-container" class="bg-white rounded-3xl shadow-sm border border-indigo-50/50 p-5 mt-2"></div>
             </div>
         </main>
 
-        <!-- 하단 네비게이션 -->
         <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 p-4 flex justify-around items-center text-gray-400 pb-6 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50">
             <button id="nav-itinerary" class="flex flex-col items-center text-indigo-500 transition-colors" onclick="window.switchTab('itinerary')">
                 <i data-lucide="calendar-days" class="w-6 h-6"></i>
@@ -88,92 +79,36 @@
             appId: "1:883462812612:web:ebb0479fcafb1c807f2a91"
         };
         
-        let app, db;
-
-        // 대만 여행 날짜: 2026년 5월 16일
-        function updateDday() {
-            const dday = new Date(2026, 4, 16); // 5월은 index 4
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); 
-            const diffTime = dday.getTime() - today.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            let text = diffDays > 0 ? `D-${diffDays}` : (diffDays === 0 ? `D-Day 🇹🇼` : `D+${Math.abs(diffDays)}`);
-            document.getElementById('dday-badge').innerText = text;
-        }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         const defaultData = [
-            { id: 1, day: "1일차", date: "5월 16일", theme: "타이베이 도착 & 야시장 투어", activities: [{ id: 101, time: "오전", title: "타이베이 공항 도착", type: "plane", desc: "환전 및 유심 수령", mapUrl: "", memo: "" }] },
-            { id: 2, day: "2일차", date: "5월 17일", theme: "예스진지 투어", activities: [{ id: 201, time: "오후", title: "지우펀 홍등가 🏮", type: "camera", desc: "인생샷 남기기", mapUrl: "", memo: "" }] },
-            { id: 3, day: "3일차", date: "5월 18일", theme: "마지막 쇼핑 & 귀국", activities: [{ id: 301, time: "오전", title: "누가크래커 쇼핑", type: "shopping-bag", desc: "선물 사기", mapUrl: "", memo: "" }] }
+            { id: 1, day: "1일차", date: "5월 16일", theme: "타이베이 도착 & 야시장 투어", activities: [{ id: 101, time: "오전", title: "타이베이 공항 도착", type: "plane", desc: "환전 및 유심 수령", memo: "" }] },
+            { id: 2, day: "2일차", date: "5월 17일", theme: "예스진지 투어", activities: [{ id: 201, time: "오후", title: "지우펀 홍등가 🏮", type: "camera", desc: "인생샷 남기기", memo: "" }] },
+            { id: 3, day: "3일차", date: "5월 18일", theme: "마지막 쇼핑 & 귀국", activities: [{ id: 301, time: "오전", title: "누가크래커 쇼핑", type: "shopping-bag", desc: "선물 사기", memo: "" }] }
         ];
 
-        let tripData = [];
-        let checklistData = [{ id: "c1", text: "여권 챙기기", checked: false }, { id: "c2", text: "이지카드 충전", checked: false }];
+        let tripData = [...defaultData];
+        let checklistData = [{ id: "c1", text: "여권 챙기기", checked: false }];
         let openDays = [1, 2, 3]; 
         let expandedMemos = {};
         let isEditMode = false;
         let currentTab = 'itinerary';
-        let historyStack = []; 
-
-        const getIconColor = (type) => {
-            const colors = { plane: 'text-blue-500', camera: 'text-teal-500', 'shopping-bag': 'text-pink-500', utensils: 'text-orange-500', bus: 'text-emerald-500' };
-            return colors[type] || 'text-indigo-400';
-        };
-
-        async function initFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                // 세현님 데이터와 분리된 'taiwan-trip' 경로
-                const docRef = doc(db, 'trips', 'taiwan-trip'); 
-                
-                onSnapshot(docRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        tripData = JSON.parse(data.tripData || "[]");
-                        checklistData = JSON.parse(data.checklistData || "[]");
-                    } else {
-                        tripData = defaultData;
-                        checklistData = [{ id: "c1", text: "이지카드 챙기기", checked: false }];
-                        saveData();
-                    }
-                    render();
-                    document.getElementById('loading-screen').style.display = 'none';
-                });
-            } catch (e) { console.error("Firebase 에러:", e); }
-        }
-
-        async function saveData() {
-            try {
-                const docRef = doc(db, 'trips', 'taiwan-trip');
-                await setDoc(docRef, { tripData: JSON.stringify(tripData), checklistData: JSON.stringify(checklistData) });
-            } catch (e) { console.error("저장 에러:", e); }
-        }
 
         window.switchTab = function(tab) {
             currentTab = tab;
-            window.scrollTo(0, 0);
             render();
         };
 
         window.toggleEditMode = function() {
             isEditMode = !isEditMode;
-            const btn = document.getElementById('edit-toggle-btn');
-            if (isEditMode) {
-                btn.classList.add('bg-indigo-100', 'text-indigo-600');
-                btn.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
-            } else {
-                btn.classList.remove('bg-indigo-100', 'text-indigo-600');
-                btn.innerHTML = '<i data-lucide="edit-3" class="w-5 h-5"></i>';
-                saveData();
-            }
-            lucide.createIcons();
+            if (!isEditMode) saveData();
             render();
         };
 
         window.toggleDay = function(id) {
-            if (openDays.includes(id)) { openDays = openDays.filter(dayId => dayId !== id); }
-            else { openDays.push(id); }
+            if (openDays.includes(id)) openDays = openDays.filter(d => d !== id);
+            else openDays.push(id);
             render();
         };
 
@@ -185,46 +120,40 @@
 
         window.saveInlineMemo = function(e, dayId, actId) {
             if (e) e.stopPropagation();
-            const textarea = document.getElementById(`memo-input-${actId}`);
-            if (!textarea) return;
+            const val = document.getElementById(`memo-input-${actId}`).value;
             const day = tripData.find(d => d.id == dayId);
             const act = day.activities.find(a => a.id == actId);
-            act.memo = textarea.value;
+            act.memo = val;
             saveData();
             expandedMemos[actId] = 'view';
             render();
         };
 
         window.toggleChecklistItem = function(id) {
-            if (isEditMode) return;
             const item = checklistData.find(i => i.id == id);
-            if (item) {
-                item.checked = !item.checked;
-                saveData();
-                render();
-            }
+            if (item) { item.checked = !item.checked; saveData(); render(); }
         };
 
+        async function saveData() {
+            const docRef = doc(db, 'trips', 'taiwan-trip');
+            await setDoc(docRef, { tripData: JSON.stringify(tripData), checklistData: JSON.stringify(checklistData) });
+        }
+
         function render() {
-            // 탭 가시성 조절
             document.getElementById('itinerary-view').style.display = currentTab === 'itinerary' ? 'block' : 'none';
             document.getElementById('checklist-view').style.display = currentTab === 'checklist' ? 'block' : 'none';
             
             const navItin = document.getElementById('nav-itinerary');
             const navCheck = document.getElementById('nav-checklist');
-            if (currentTab === 'itinerary') {
-                navItin.classList.add('text-indigo-500'); navCheck.classList.remove('text-indigo-500');
-            } else {
-                navCheck.classList.add('text-indigo-500'); navItin.classList.remove('text-indigo-500');
-            }
+            navItin.className = `flex flex-col items-center ${currentTab === 'itinerary' ? 'text-indigo-500' : 'text-gray-400'}`;
+            navCheck.className = `flex flex-col items-center ${currentTab === 'checklist' ? 'text-indigo-500' : 'text-gray-400'}`;
 
             // 체크리스트 렌더링
             const chkContainer = document.getElementById('checklist-container');
             let chkHtml = '<h2 class="text-xl font-bold text-gray-800 mb-5 flex items-center"><i data-lucide="list-todo" class="w-6 h-6 mr-2 text-indigo-500"></i> 여행 체크리스트</h2><div class="space-y-3">';
-            (checklistData || []).forEach(item => {
-                const icon = item.checked ? 'check-square' : 'square';
-                chkHtml += `<div class="flex items-center p-3 rounded-xl bg-white shadow-sm border border-slate-100 cursor-pointer transition-colors hover:bg-indigo-50/30" onclick="window.toggleChecklistItem('${item.id}')">
-                    <i data-lucide="${icon}" class="w-6 h-6 mr-3 ${item.checked ? 'text-indigo-400' : 'text-gray-300'}"></i>
+            checklistData.forEach(item => {
+                chkHtml += `<div class="flex items-center p-3 rounded-xl bg-white shadow-sm border border-slate-100 cursor-pointer" onclick="window.toggleChecklistItem('${item.id}')">
+                    <i data-lucide="${item.checked ? 'check-square' : 'square'}" class="w-6 h-6 mr-3 ${item.checked ? 'text-indigo-400' : 'text-gray-300'}"></i>
                     <span class="${item.checked ? 'text-gray-400 line-through' : 'text-gray-800 font-medium'}">${item.text}</span>
                 </div>`;
             });
@@ -233,63 +162,54 @@
             // 일정표 렌더링
             const container = document.getElementById('trip-container');
             container.innerHTML = '';
-            (tripData || []).forEach(day => {
+            tripData.forEach(day => {
                 const isOpen = openDays.includes(day.id);
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-3xl shadow-sm border border-indigo-50/50 mb-4 overflow-hidden transition-all duration-300";
-                
-                let html = `<div class="p-5 flex justify-between items-center cursor-pointer hover:bg-indigo-50/20" onclick="window.toggleDay(${day.id})">
+                card.className = "bg-white rounded-3xl shadow-sm border border-indigo-50/50 mb-4 overflow-hidden";
+                let html = `<div class="p-5 flex justify-between items-center cursor-pointer" onclick="window.toggleDay(${day.id})">
                     <div><span class="text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">${day.day}</span><h3 class="mt-2 text-lg font-bold text-gray-800">${day.theme}</h3></div>
                     <i data-lucide="${isOpen ? 'chevron-up' : 'chevron-down'}" class="text-gray-400"></i>
                 </div>`;
-                
                 if (isOpen) {
                     html += `<div class="px-5 pb-6 pt-2 border-t border-indigo-50/30"><div class="relative border-l-[1.5px] border-indigo-100 ml-4 space-y-6 mt-4">`;
-                    (day.activities || []).forEach(act => {
+                    day.activities.forEach(act => {
                         const memoState = expandedMemos[act.id];
-                        let memoHtml = '';
-                        if (memoState === 'view') {
-                            memoHtml = `<div class="mt-3 pt-3 border-t border-gray-100" onclick="event.stopPropagation()">
-                                <div class="flex justify-between items-center mb-1"><span class="text-xs font-bold text-gray-400">상세 메모</span><button onclick="window.toggleMemo(event, '${act.id}', 'edit')" class="p-1 hover:bg-indigo-50 rounded"><i data-lucide="pencil" class="w-3.5 h-3.5 text-gray-400"></i></button></div>
-                                <p class="text-sm text-gray-700 whitespace-pre-wrap bg-slate-50 p-3 rounded-xl border border-slate-100">${act.memo || '작성된 메모가 없습니다.'}</p>
-                            </div>`;
-                        } else if (memoState === 'edit') {
-                            memoHtml = `<div class="mt-3 pt-3 border-t border-gray-100" onclick="event.stopPropagation()">
-                                <textarea id="memo-input-${act.id}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm min-h-[100px] focus:ring-1 focus:ring-indigo-300 outline-none">${act.memo || ''}</textarea>
-                                <div class="flex justify-end space-x-2 mt-2">
-                                    <button onclick="window.toggleMemo(event, '${act.id}', 'view')" class="px-3 py-1 text-xs bg-gray-100 rounded-lg">취소</button>
-                                    <button onclick="window.saveInlineMemo(event, ${day.id}, ${act.id})" class="px-3 py-1 text-xs bg-indigo-500 text-white rounded-lg font-bold">저장</button>
-                                </div>
-                            </div>`;
-                        }
+                        let memoHtml = memoState === 'view' ? `<div class="mt-3 pt-3 border-t border-gray-100" onclick="event.stopPropagation()">
+                            <div class="flex justify-between items-center mb-1"><span class="text-xs font-bold text-gray-400">상세 메모</span><button onclick="window.toggleMemo(event, '${act.id}', 'edit')"><i data-lucide="pencil" class="w-3.5 h-3.5 text-gray-400"></i></button></div>
+                            <p class="text-sm text-gray-700 whitespace-pre-wrap bg-slate-50 p-3 rounded-xl border border-slate-100">${act.memo || '작성된 메모가 없습니다.'}</p>
+                        </div>` : (memoState === 'edit' ? `<div class="mt-3 pt-3 border-t border-gray-100" onclick="event.stopPropagation()">
+                            <textarea id="memo-input-${act.id}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm min-h-[100px]">${act.memo || ''}</textarea>
+                            <div class="flex justify-end space-x-2 mt-2"><button onclick="window.toggleMemo(event, '${act.id}', 'view')" class="px-3 py-1 text-xs bg-gray-100 rounded-lg">취소</button><button onclick="window.saveInlineMemo(event, ${day.id}, ${act.id})" class="px-3 py-1 text-xs bg-indigo-500 text-white rounded-lg">저장</button></div>
+                        </div>` : '');
 
                         html += `<div class="relative pl-6">
-                            <div class="absolute -left-[17px] top-0 w-[34px] h-[34px] rounded-full bg-white border border-indigo-50 shadow-sm flex items-center justify-center z-10"><i data-lucide="${act.type}" class="w-4 h-4 ${getIconColor(act.type)}"></i></div>
+                            <div class="absolute -left-[17px] top-0 w-[34px] h-[34px] rounded-full bg-white border border-indigo-50 shadow-sm flex items-center justify-center z-10"><i data-lucide="${act.type}" class="w-4 h-4 text-indigo-400"></i></div>
                             <div class="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-indigo-200 transition-all cursor-pointer" onclick="window.toggleMemo(event, '${act.id}', 'view')">
-                                <div class="flex justify-between items-center">
-                                    <div class="flex-1">
-                                        <div class="text-[11px] font-bold text-indigo-400 mb-1">${act.time}</div>
-                                        <h4 class="font-bold text-gray-800">${act.title}</h4>
-                                        ${act.desc ? `<p class="text-xs text-gray-500 mt-1">${act.desc}</p>` : ''}
-                                    </div>
-                                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-200"></i>
-                                </div>
+                                <div class="flex justify-between items-center"><div><div class="text-[11px] font-bold text-indigo-400 mb-1">${act.time}</div><h4 class="font-bold text-gray-800">${act.title}</h4></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-200"></i></div>
                                 ${memoHtml}
                             </div>
                         </div>`;
                     });
                     html += `</div></div>`;
                 }
-                card.innerHTML = html;
-                container.appendChild(card);
+                card.innerHTML = html; container.appendChild(card);
             });
             lucide.createIcons();
-            updateDday();
+            const dday = new Date(2026, 4, 16);
+            const diff = Math.ceil((dday - new Date().setHours(0,0,0,0)) / (1000*60*60*24));
+            document.getElementById('dday-badge').innerText = diff > 0 ? `D-${diff}` : (diff === 0 ? "D-Day 🇹🇼" : `D+${Math.abs(diff)}`);
         }
 
-        // 초기 실행
-        updateDday();
-        initFirebase();
+        // 초기화 및 실시간 데이터 연결
+        onSnapshot(doc(db, 'trips', 'taiwan-trip'), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                tripData = JSON.parse(data.tripData || "[]");
+                checklistData = JSON.parse(data.checklistData || "[]");
+            }
+            render();
+            document.getElementById('loading-screen').style.display = 'none';
+        });
     </script>
 </body>
 </html>
