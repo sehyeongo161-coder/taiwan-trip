@@ -106,19 +106,8 @@
         let isEditMode = false;
         let currentTab = 'itinerary';
 
-        // 지하철(train) 색상 추가
         const getIconColor = (type) => {
-            const colors = { 
-                plane: 'text-blue-500', 
-                ship: 'text-cyan-500', 
-                train: 'text-indigo-600',
-                bus: 'text-emerald-500', 
-                utensils: 'text-orange-500', 
-                'shopping-bag': 'text-purple-500', 
-                camera: 'text-teal-500', 
-                heart: 'text-pink-500', 
-                coffee: 'text-amber-600' 
-            };
+            const colors = { plane: 'text-blue-500', ship: 'text-cyan-500', train: 'text-indigo-600', bus: 'text-emerald-500', utensils: 'text-orange-500', 'shopping-bag': 'text-purple-500', camera: 'text-teal-500', heart: 'text-pink-500', coffee: 'text-amber-600' };
             return colors[type] || 'text-purple-400';
         };
 
@@ -152,7 +141,6 @@
         window.switchTab = function(tab) { currentTab = tab; render(); };
         window.toggleDay = function(id) { if (openDays.includes(id)) openDays = openDays.filter(d => d !== id); else openDays.push(id); render(); };
 
-        // 아이콘 리스트에 'train' 추가
         window.changeIcon = function(dayId, activityId) {
             const types = ['plane', 'ship', 'train', 'bus', 'utensils', 'shopping-bag', 'camera', 'heart', 'coffee'];
             const day = tripData.find(d => String(d.id) === String(dayId));
@@ -235,12 +223,16 @@
                 else el.classList.remove('text-purple-600');
             });
 
+            // 1. 먹킷리스트 렌더링 (군것질 카테고리 추가)
             const muckContainer = document.getElementById('muckkit-container');
             muckContainer.innerHTML = ''; 
             
-            ["식당", "카페"].forEach(cat => {
+            ["식당", "카페", "군것질"].forEach(cat => {
                 const items = muckkitData.filter(m => m.category === cat);
-                const iconType = cat === '카페' ? 'coffee' : 'utensils';
+                let iconType = 'utensils';
+                if (cat === '카페') iconType = 'coffee';
+                if (cat === '군것질') iconType = 'ice-cream';
+                
                 let catHtml = `<div class="mb-6">
                     <div class="flex justify-between items-center mb-3">
                         <div class="flex items-center space-x-2 bg-white border border-purple-100 shadow-sm px-4 py-1.5 rounded-full">
@@ -249,25 +241,47 @@
                         </div>
                     </div>
                     <div class="space-y-3">`;
+                
                 items.forEach(item => {
                     if (isEditMode) {
                         catHtml += `<div class="bg-white p-4 rounded-2xl border-2 border-purple-100 shadow-sm relative">
-                            <div class="flex gap-2 mb-3"><i data-lucide="${iconType}" class="w-4 h-4 text-purple-400 mt-1"></i><input type="text" class="edit-input flex-1 font-bold text-sm bg-purple-50/30" value="${item.name}" onchange="window.updateMuckkit('${item.id}', 'name', this.value)"></div>
+                            <div class="flex gap-2 mb-3">
+                                <i data-lucide="${iconType}" class="w-4 h-4 text-purple-400 mt-1"></i>
+                                <input type="text" class="edit-input flex-1 font-bold text-sm bg-purple-50/30" value="${item.name}" onchange="window.updateMuckkit('${item.id}', 'name', this.value)">
+                            </div>
                             <input type="text" class="edit-input w-full text-xs text-gray-500 mb-2" value="${item.tags}" placeholder="태그 (#지역, #특징)" onchange="window.updateMuckkit('${item.id}', 'tags', this.value)">
-                            <div class="flex justify-between items-center"><div class="flex-1 mr-2 flex items-center bg-gray-50 rounded p-1 border border-gray-100"><i data-lucide="map-pin" class="w-3 h-3 text-gray-400 mx-1"></i><input type="text" class="edit-input flex-1 text-[10px] text-blue-500 border-none bg-transparent p-0" value="${item.mapUrl}" placeholder="구글맵 URL 붙여넣기" onchange="window.updateMuckkit('${item.id}', 'mapUrl', this.value)"></div><button onclick="window.deleteMuckkit('${item.id}')" class="bg-red-50 text-red-500 p-1.5 rounded hover:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>
+                            <div class="flex justify-between items-center">
+                                <div class="flex-1 mr-2 flex items-center bg-gray-50 rounded p-1 border border-gray-100">
+                                   <i data-lucide="map-pin" class="w-3 h-3 text-gray-400 mx-1"></i>
+                                   <input type="text" class="edit-input flex-1 text-[10px] text-blue-500 border-none bg-transparent p-0" value="${item.mapUrl}" placeholder="구글맵 URL 붙여넣기" onchange="window.updateMuckkit('${item.id}', 'mapUrl', this.value)">
+                                </div>
+                                <button onclick="window.deleteMuckkit('${item.id}')" class="bg-red-50 text-red-500 p-1.5 rounded hover:bg-red-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
                         </div>`;
                     } else {
                         const tags = item.tags.split(',').map(t => `<span class="bg-purple-50 text-purple-600 text-[10px] font-bold px-2 py-0.5 rounded-md mr-1 border border-purple-100">#${t.trim()}</span>`).join('');
                         catHtml += `<div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center group hover:border-purple-200 transition-colors">
-                            <div class="flex items-start space-x-3"><div class="bg-purple-50 p-2.5 rounded-xl mt-0.5 border border-purple-100/50"><i data-lucide="${iconType}" class="w-5 h-5 text-purple-500"></i></div><div><h4 class="font-extrabold text-gray-800 text-[15px]">${item.name}</h4><div class="mt-1.5 flex flex-wrap gap-y-1">${tags}</div></div></div>
+                            <div class="flex items-start space-x-3">
+                                <div class="bg-purple-50 p-2.5 rounded-xl mt-0.5 border border-purple-100/50"><i data-lucide="${iconType}" class="w-5 h-5 text-purple-500"></i></div>
+                                <div>
+                                    <h4 class="font-extrabold text-gray-800 text-[15px]">${item.name}</h4>
+                                    <div class="mt-1.5 flex flex-wrap gap-y-1">${tags}</div>
+                                </div>
+                            </div>
                             ${item.mapUrl ? `<a href="${item.mapUrl}" target="_blank" class="p-2.5 bg-blue-50 text-blue-500 rounded-full hover:bg-blue-100 transition-colors shadow-sm ml-2 shrink-0"><i data-lucide="map-pin" class="w-4 h-4"></i></a>` : ''}
                         </div>`;
                     }
                 });
-                if (isEditMode) { catHtml += `<button onclick="window.addMuckkit('${cat}')" class="w-full py-3 border-2 border-dashed border-purple-200 rounded-xl text-purple-500 text-xs font-bold mt-2 hover:bg-purple-50 transition-colors shadow-sm flex justify-center items-center"><i data-lucide="plus" class="w-4 h-4 mr-1"></i> ${cat} 추가하기</button>`; }
-                catHtml += `</div></div>`; muckContainer.innerHTML += catHtml;
+                
+                if (isEditMode) {
+                    catHtml += `<button onclick="window.addMuckkit('${cat}')" class="w-full py-3 border-2 border-dashed border-purple-200 rounded-xl text-purple-500 text-xs font-bold mt-2 hover:bg-purple-50 transition-colors shadow-sm flex justify-center items-center"><i data-lucide="plus" class="w-4 h-4 mr-1"></i> ${cat} 추가하기</button>`;
+                }
+                
+                catHtml += `</div></div>`;
+                muckContainer.innerHTML += catHtml;
             });
 
+            // 2. 일정표 렌더링 (기존 로직 유지)
             const tripContainer = document.getElementById('trip-container');
             tripContainer.innerHTML = '';
             tripData.forEach(day => {
@@ -307,6 +321,7 @@
                 tripContainer.appendChild(card);
             });
 
+            // 3. 체크리스트 렌더링 (기존 로직 유지)
             const chkContainer = document.getElementById('checklist-container');
             chkContainer.innerHTML = `<div class="flex items-center mb-5"><div class="bg-purple-100 p-2 rounded-xl mr-3 shadow-sm"><i data-lucide="list-todo" class="w-5 h-5 text-purple-600"></i></div><h2 class="text-xl font-bold text-gray-800">체크리스트</h2></div>`;
             checklistData.forEach(item => {
