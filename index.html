@@ -15,11 +15,14 @@
     </style>
 </head>
 <body>
+    <!-- 로딩 화면 -->
     <div id="loading-screen">
+        <div class="animate-bounce mb-4 text-4xl">🇹🇼</div>
         <div>대만 여행 데이터 동기화 중...</div>
     </div>
 
     <div class="w-full max-w-md bg-[#FAFAFA] min-h-screen shadow-2xl relative pb-24 overflow-x-hidden">
+        <!-- 헤더 영역 -->
         <header class="bg-gradient-to-br from-indigo-100 via-purple-50 to-blue-50 px-6 pt-12 pb-8 rounded-b-[40px] shadow-sm relative overflow-hidden">
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-200 rounded-full mix-blend-multiply filter blur-2xl opacity-50"></div>
             <div class="absolute top-10 -left-10 w-32 h-32 bg-purple-200 rounded-full mix-blend-multiply filter blur-2xl opacity-50"></div>
@@ -45,18 +48,30 @@
         </header>
 
         <main class="px-5 -mt-4 relative z-20">
+            <!-- 일정표 뷰 -->
             <div id="itinerary-view">
                 <div id="trip-container"></div>
             </div>
+            <!-- 체크리스트 뷰 -->
             <div id="checklist-view" class="hidden pb-8">
                 <div id="checklist-container" class="bg-white rounded-3xl shadow-sm border border-indigo-50/50 p-5 mt-2"></div>
             </div>
         </main>
 
+        <!-- 하단 네비게이션 -->
         <div class="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 p-4 flex justify-around items-center text-gray-400 pb-6 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50">
-            <button id="nav-itinerary" class="flex flex-col items-center text-indigo-500 transition-colors" onclick="window.switchTab('itinerary')"><i data-lucide="calendar-days" class="w-6 h-6"></i><span class="text-[10px] mt-1 font-medium">일정표</span></button>
-            <button id="nav-checklist" class="flex flex-col items-center hover:text-gray-800 transition-colors" onclick="window.switchTab('checklist')"><i data-lucide="list-todo" class="w-6 h-6"></i><span class="text-[10px] mt-1 font-medium">체크리스트</span></button>
-            <a href="https://www.google.com/maps/search/대만+타이베이+맛집" target="_blank" class="flex flex-col items-center hover:text-gray-800 transition-colors"><i data-lucide="map" class="w-6 h-6"></i><span class="text-[10px] mt-1 font-medium">지도 검색</span></a>
+            <button id="nav-itinerary" class="flex flex-col items-center text-indigo-500 transition-colors" onclick="window.switchTab('itinerary')">
+                <i data-lucide="calendar-days" class="w-6 h-6"></i>
+                <span class="text-[10px] mt-1 font-medium">일정표</span>
+            </button>
+            <button id="nav-checklist" class="flex flex-col items-center hover:text-gray-800 transition-colors" onclick="window.switchTab('checklist')">
+                <i data-lucide="list-todo" class="w-6 h-6"></i>
+                <span class="text-[10px] mt-1 font-medium">체크리스트</span>
+            </button>
+            <a href="https://www.google.com/maps/search/대만+타이베이+맛집" target="_blank" class="flex flex-col items-center hover:text-gray-800 transition-colors">
+                <i data-lucide="map" class="w-6 h-6"></i>
+                <span class="text-[10px] mt-1 font-medium">지도 검색</span>
+            </a>
         </div>
     </div>
 
@@ -75,8 +90,9 @@
         
         let app, db;
 
+        // 대만 여행 날짜: 2026년 5월 16일
         function updateDday() {
-            const dday = new Date(2026, 4, 16); // 5월 16일
+            const dday = new Date(2026, 4, 16); // 5월은 index 4
             const today = new Date();
             today.setHours(0, 0, 0, 0); 
             const diffTime = dday.getTime() - today.getTime();
@@ -92,14 +108,13 @@
         ];
 
         let tripData = [];
-        let checklistData = [{ id: "c1", text: "이지카드 챙기기", checked: false }];
+        let checklistData = [{ id: "c1", text: "여권 챙기기", checked: false }, { id: "c2", text: "이지카드 충전", checked: false }];
         let openDays = [1, 2, 3]; 
         let expandedMemos = {};
         let isEditMode = false;
         let currentTab = 'itinerary';
         let historyStack = []; 
 
-        const iconTypes = ['heart', 'plane', 'bus', 'train-front', 'utensils', 'music', 'shopping-bag', 'camera', 'coffee', 'map-pin'];
         const getIconColor = (type) => {
             const colors = { plane: 'text-blue-500', camera: 'text-teal-500', 'shopping-bag': 'text-pink-500', utensils: 'text-orange-500', bus: 'text-emerald-500' };
             return colors[type] || 'text-indigo-400';
@@ -109,56 +124,56 @@
             try {
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
+                // 세현님 데이터와 분리된 'taiwan-trip' 경로
                 const docRef = doc(db, 'trips', 'taiwan-trip'); 
                 
                 onSnapshot(docRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        tripData = JSON.parse(data.tripData);
-                        checklistData = JSON.parse(data.checklistData);
-                        render();
-                    } else { saveData(); }
+                        tripData = JSON.parse(data.tripData || "[]");
+                        checklistData = JSON.parse(data.checklistData || "[]");
+                    } else {
+                        tripData = defaultData;
+                        checklistData = [{ id: "c1", text: "이지카드 챙기기", checked: false }];
+                        saveData();
+                    }
+                    render();
                     document.getElementById('loading-screen').style.display = 'none';
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Firebase 에러:", e); }
         }
 
         async function saveData() {
-            const docRef = doc(db, 'trips', 'taiwan-trip');
-            await setDoc(docRef, { tripData: JSON.stringify(tripData), checklistData: JSON.stringify(checklistData) });
+            try {
+                const docRef = doc(db, 'trips', 'taiwan-trip');
+                await setDoc(docRef, { tripData: JSON.stringify(tripData), checklistData: JSON.stringify(checklistData) });
+            } catch (e) { console.error("저장 에러:", e); }
         }
 
-        function saveHistory() {
-            historyStack.push({ tripData: JSON.parse(JSON.stringify(tripData)), checklistData: JSON.parse(JSON.stringify(checklistData)) });
-            if(historyStack.length > 20) historyStack.shift(); 
-            updateUndoButtonState();
-        }
-
-        function updateUndoButtonState() {
-            const btn = document.getElementById('undo-btn');
-            if (historyStack.length > 0) { btn.removeAttribute('disabled'); btn.classList.add('text-indigo-500'); } 
-            else { btn.setAttribute('disabled', 'true'); btn.classList.remove('text-indigo-500'); }
-        }
-
-        window.undoAction = function() {
-            if (historyStack.length === 0) return;
-            const prevState = historyStack.pop();
-            tripData = prevState.tripData; checklistData = prevState.checklistData;
-            saveData(); updateUndoButtonState(); render();
+        window.switchTab = function(tab) {
+            currentTab = tab;
+            window.scrollTo(0, 0);
+            render();
         };
-
-        window.switchTab = function(tab) { currentTab = tab; window.scrollTo(0,0); render(); };
 
         window.toggleEditMode = function() {
             isEditMode = !isEditMode;
             const btn = document.getElementById('edit-toggle-btn');
-            if (isEditMode) { btn.classList.add('bg-indigo-100', 'text-indigo-600'); btn.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>'; }
-            else { btn.classList.remove('bg-indigo-100', 'text-indigo-600'); btn.innerHTML = '<i data-lucide="edit-3" class="w-5 h-5"></i>'; saveData(); }
+            if (isEditMode) {
+                btn.classList.add('bg-indigo-100', 'text-indigo-600');
+                btn.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+            } else {
+                btn.classList.remove('bg-indigo-100', 'text-indigo-600');
+                btn.innerHTML = '<i data-lucide="edit-3" class="w-5 h-5"></i>';
+                saveData();
+            }
+            lucide.createIcons();
             render();
         };
 
         window.toggleDay = function(id) {
-            if (openDays.includes(id)) { openDays = openDays.filter(dayId => dayId !== id); } else { openDays.push(id); }
+            if (openDays.includes(id)) { openDays = openDays.filter(dayId => dayId !== id); }
+            else { openDays.push(id); }
             render();
         };
 
@@ -170,59 +185,67 @@
 
         window.saveInlineMemo = function(e, dayId, actId) {
             if (e) e.stopPropagation();
-            const val = document.getElementById(`memo-input-${actId}`).value;
+            const textarea = document.getElementById(`memo-input-${actId}`);
+            if (!textarea) return;
             const day = tripData.find(d => d.id == dayId);
             const act = day.activities.find(a => a.id == actId);
-            if (act.memo !== val) { saveHistory(); act.memo = val; saveData(); }
+            act.memo = textarea.value;
+            saveData();
             expandedMemos[actId] = 'view';
             render();
         };
 
-        window.updateData = function(dayId, activityId, field, value) {
-            const day = tripData.find(d => d.id == dayId);
-            const act = day.activities.find(a => a.id == activityId);
-            if (act[field] !== value) { saveHistory(); act[field] = value; saveData(); }
-        };
-
         window.toggleChecklistItem = function(id) {
             if (isEditMode) return;
-            saveHistory();
             const item = checklistData.find(i => i.id == id);
-            item.checked = !item.checked;
-            saveData(); render();
+            if (item) {
+                item.checked = !item.checked;
+                saveData();
+                render();
+            }
         };
 
         function render() {
+            // 탭 가시성 조절
             document.getElementById('itinerary-view').style.display = currentTab === 'itinerary' ? 'block' : 'none';
             document.getElementById('checklist-view').style.display = currentTab === 'checklist' ? 'block' : 'none';
             
-            const navItin = document.getElementById('nav-itinerary'); const navCheck = document.getElementById('nav-checklist');
-            if (currentTab === 'itinerary') { navItin.classList.add('text-indigo-500'); navCheck.classList.remove('text-indigo-500'); } 
-            else { navCheck.classList.add('text-indigo-500'); navItin.classList.remove('text-indigo-500'); }
+            const navItin = document.getElementById('nav-itinerary');
+            const navCheck = document.getElementById('nav-checklist');
+            if (currentTab === 'itinerary') {
+                navItin.classList.add('text-indigo-500'); navCheck.classList.remove('text-indigo-500');
+            } else {
+                navCheck.classList.add('text-indigo-500'); navItin.classList.remove('text-indigo-500');
+            }
 
+            // 체크리스트 렌더링
             const chkContainer = document.getElementById('checklist-container');
             let chkHtml = '<h2 class="text-xl font-bold text-gray-800 mb-5 flex items-center"><i data-lucide="list-todo" class="w-6 h-6 mr-2 text-indigo-500"></i> 여행 체크리스트</h2><div class="space-y-3">';
-            checklistData.forEach(item => {
+            (checklistData || []).forEach(item => {
                 const icon = item.checked ? 'check-square' : 'square';
-                chkHtml += `<div class="flex items-center p-3 rounded-xl bg-white shadow-sm border border-slate-100 cursor-pointer" onclick="window.toggleChecklistItem('${item.id}')">
+                chkHtml += `<div class="flex items-center p-3 rounded-xl bg-white shadow-sm border border-slate-100 cursor-pointer transition-colors hover:bg-indigo-50/30" onclick="window.toggleChecklistItem('${item.id}')">
                     <i data-lucide="${icon}" class="w-6 h-6 mr-3 ${item.checked ? 'text-indigo-400' : 'text-gray-300'}"></i>
                     <span class="${item.checked ? 'text-gray-400 line-through' : 'text-gray-800 font-medium'}">${item.text}</span>
                 </div>`;
             });
             chkContainer.innerHTML = chkHtml + '</div>';
 
-            const container = document.getElementById('trip-container'); container.innerHTML = '';
-            tripData.forEach(day => {
+            // 일정표 렌더링
+            const container = document.getElementById('trip-container');
+            container.innerHTML = '';
+            (tripData || []).forEach(day => {
                 const isOpen = openDays.includes(day.id);
-                const card = document.createElement('div'); card.className = "bg-white rounded-3xl shadow-sm border border-indigo-50/50 mb-4 overflow-hidden";
-                let html = `<div class="p-5 flex justify-between items-center cursor-pointer" onclick="window.toggleDay(${day.id})">
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl shadow-sm border border-indigo-50/50 mb-4 overflow-hidden transition-all duration-300";
+                
+                let html = `<div class="p-5 flex justify-between items-center cursor-pointer hover:bg-indigo-50/20" onclick="window.toggleDay(${day.id})">
                     <div><span class="text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">${day.day}</span><h3 class="mt-2 text-lg font-bold text-gray-800">${day.theme}</h3></div>
                     <i data-lucide="${isOpen ? 'chevron-up' : 'chevron-down'}" class="text-gray-400"></i>
                 </div>`;
                 
                 if (isOpen) {
                     html += `<div class="px-5 pb-6 pt-2 border-t border-indigo-50/30"><div class="relative border-l-[1.5px] border-indigo-100 ml-4 space-y-6 mt-4">`;
-                    day.activities.forEach(act => {
+                    (day.activities || []).forEach(act => {
                         const memoState = expandedMemos[act.id];
                         let memoHtml = '';
                         if (memoState === 'view') {
@@ -232,10 +255,10 @@
                             </div>`;
                         } else if (memoState === 'edit') {
                             memoHtml = `<div class="mt-3 pt-3 border-t border-gray-100" onclick="event.stopPropagation()">
-                                <textarea id="memo-input-${act.id}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm min-h-[100px]">${act.memo || ''}</textarea>
+                                <textarea id="memo-input-${act.id}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm min-h-[100px] focus:ring-1 focus:ring-indigo-300 outline-none">${act.memo || ''}</textarea>
                                 <div class="flex justify-end space-x-2 mt-2">
                                     <button onclick="window.toggleMemo(event, '${act.id}', 'view')" class="px-3 py-1 text-xs bg-gray-100 rounded-lg">취소</button>
-                                    <button onclick="window.saveInlineMemo(event, ${day.id}, ${act.id})" class="px-3 py-1 text-xs bg-indigo-500 text-white rounded-lg">저장</button>
+                                    <button onclick="window.saveInlineMemo(event, ${day.id}, ${act.id})" class="px-3 py-1 text-xs bg-indigo-500 text-white rounded-lg font-bold">저장</button>
                                 </div>
                             </div>`;
                         }
@@ -244,7 +267,11 @@
                             <div class="absolute -left-[17px] top-0 w-[34px] h-[34px] rounded-full bg-white border border-indigo-50 shadow-sm flex items-center justify-center z-10"><i data-lucide="${act.type}" class="w-4 h-4 ${getIconColor(act.type)}"></i></div>
                             <div class="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm hover:border-indigo-200 transition-all cursor-pointer" onclick="window.toggleMemo(event, '${act.id}', 'view')">
                                 <div class="flex justify-between items-center">
-                                    <div><div class="text-[11px] font-bold text-indigo-400 mb-1">${act.time}</div><h4 class="font-bold text-gray-800">${act.title}</h4></div>
+                                    <div class="flex-1">
+                                        <div class="text-[11px] font-bold text-indigo-400 mb-1">${act.time}</div>
+                                        <h4 class="font-bold text-gray-800">${act.title}</h4>
+                                        ${act.desc ? `<p class="text-xs text-gray-500 mt-1">${act.desc}</p>` : ''}
+                                    </div>
                                     <i data-lucide="chevron-right" class="w-4 h-4 text-gray-200"></i>
                                 </div>
                                 ${memoHtml}
@@ -253,15 +280,16 @@
                     });
                     html += `</div></div>`;
                 }
-                card.innerHTML = html; container.appendChild(card);
+                card.innerHTML = html;
+                container.appendChild(card);
             });
-            lucide.createIcons(); updateDday();
+            lucide.createIcons();
+            updateDday();
         }
 
-        window.onload = () => {
-            tripData = JSON.parse(JSON.stringify(defaultData)); 
-            initFirebase(); updateDday();
-        };
+        // 초기 실행
+        updateDday();
+        initFirebase();
     </script>
 </body>
 </html>
