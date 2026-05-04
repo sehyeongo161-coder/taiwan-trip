@@ -190,6 +190,58 @@
             saveData(); expandedMemos[id] = 'view'; render();
         };
 
+        // --- 순서 이동 기능 추가 ---
+        window.moveMuckkitItem = function(id, direction) {
+            const item = muckkitData.find(m => String(m.id) === String(id));
+            if (!item) return;
+            const catItems = muckkitData.filter(m => m.category === item.category);
+            const catIndex = catItems.findIndex(m => String(m.id) === String(id));
+            const targetCatIndex = catIndex + direction;
+            
+            if (targetCatIndex >= 0 && targetCatIndex < catItems.length) {
+                window.saveHistory();
+                const targetItem = catItems[targetCatIndex];
+                const actualIndex1 = muckkitData.findIndex(m => String(m.id) === String(item.id));
+                const actualIndex2 = muckkitData.findIndex(m => String(m.id) === String(targetItem.id));
+                
+                const temp = muckkitData[actualIndex1];
+                muckkitData[actualIndex1] = muckkitData[actualIndex2];
+                muckkitData[actualIndex2] = temp;
+                render();
+            }
+        };
+
+        window.moveActivity = function(dayId, actId, direction) {
+            const day = tripData.find(d => String(d.id) === String(dayId));
+            if (!day) return;
+            const index = day.activities.findIndex(a => String(a.id) === String(actId));
+            if (index < 0) return;
+            
+            const targetIndex = index + direction;
+            if (targetIndex >= 0 && targetIndex < day.activities.length) {
+                window.saveHistory();
+                const temp = day.activities[index];
+                day.activities[index] = day.activities[targetIndex];
+                day.activities[targetIndex] = temp;
+                render();
+            }
+        };
+
+        window.moveChecklistItem = function(id, direction) {
+            const index = checklistData.findIndex(i => String(i.id) === String(id));
+            if (index < 0) return;
+            
+            const targetIndex = index + direction;
+            if (targetIndex >= 0 && targetIndex < checklistData.length) {
+                window.saveHistory();
+                const temp = checklistData[index];
+                checklistData[index] = checklistData[targetIndex];
+                checklistData[targetIndex] = temp;
+                render();
+            }
+        };
+        // -------------------------
+
         // 태그 업데이트 로직: '#' 강제 제거 패치
         window.updateMuckkit = function(id, field, value) {
             const item = muckkitData.find(m => String(m.id) === String(id));
@@ -248,21 +300,25 @@
                 }
             });
 
-            // 1. 먹킷리스트 렌더링 (태그 정화 & 메모 기능 포함)
+            // 1. 먹킷리스트 렌더링
             const muckContainer = document.getElementById('muckkit-container');
             muckContainer.innerHTML = '';
             ["식당", "카페", "군것질"].forEach(cat => {
                 const items = muckkitData.filter(m => m.category === cat);
                 let iconType = cat === '카페' ? 'coffee' : (cat === '군것질' ? 'ice-cream' : 'utensils');
                 let catHtml = `<div class="mb-6"><div class="flex items-center space-x-2 bg-white border border-purple-100 px-4 py-1.5 rounded-full w-max mb-3"><i data-lucide="${iconType}" class="w-4 h-4 text-purple-500"></i><h3 class="text-[13px] font-extrabold text-purple-600">${cat}</h3></div><div class="space-y-3">`;
-                items.forEach(item => {
-                    // 태그 입력창 정화 패치
+                items.forEach((item, idx) => {
                     const cleanedTags = item.tags ? item.tags.replace(/#/g, '').replace(/태그 입력/g, '') : "";
 
                     if (isEditMode) {
                         catHtml += `<div class="bg-white p-4 rounded-2xl border-2 border-purple-100 shadow-sm"><div class="flex gap-2 mb-3"><i data-lucide="${iconType}" class="w-4 h-4 text-purple-400 mt-1"></i><input type="text" class="edit-input flex-1 font-bold text-sm bg-purple-50/30" value="${item.name}" onchange="window.updateMuckkit('${item.id}', 'name', this.value)"></div>
                         <input type="text" class="edit-input w-full text-xs text-gray-500 mb-2" value="${cleanedTags}" placeholder="태그 입력 (예: 시먼딩, 우육면, 가성비)" onchange="window.updateMuckkit('${item.id}', 'tags', this.value)">
-                        <div class="flex justify-between items-center"><div class="flex-1 mr-2 flex bg-gray-50 rounded p-1 border"><i data-lucide="map-pin" class="w-3 h-3 text-gray-400 mx-1"></i><input type="text" class="edit-input flex-1 text-[10px] text-blue-500 border-none bg-transparent p-0" value="${item.mapUrl || ''}" placeholder="구글맵 URL (https:// 필수)" onchange="window.updateMuckkit('${item.id}', 'mapUrl', this.value)"></div><button onclick="window.deleteMuckkit('${item.id}')" class="text-red-300"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
+                        <div class="flex justify-between items-center"><div class="flex-1 mr-2 flex bg-gray-50 rounded p-1 border"><i data-lucide="map-pin" class="w-3 h-3 text-gray-400 mx-1"></i><input type="text" class="edit-input flex-1 text-[10px] text-blue-500 border-none bg-transparent p-0" value="${item.mapUrl || ''}" placeholder="구글맵 URL (https:// 필수)" onchange="window.updateMuckkit('${item.id}', 'mapUrl', this.value)"></div>
+                        <div class="flex space-x-1 mr-2">
+                            <button onclick="window.moveMuckkitItem('${item.id}', -1)" class="p-1 bg-white rounded shadow-sm text-gray-400 hover:text-purple-500 disabled:opacity-30 disabled:shadow-none" ${idx === 0 ? 'disabled' : ''}><i data-lucide="arrow-up" class="w-4 h-4"></i></button>
+                            <button onclick="window.moveMuckkitItem('${item.id}', 1)" class="p-1 bg-white rounded shadow-sm text-gray-400 hover:text-purple-500 disabled:opacity-30 disabled:shadow-none" ${idx === items.length - 1 ? 'disabled' : ''}><i data-lucide="arrow-down" class="w-4 h-4"></i></button>
+                        </div>
+                        <button onclick="window.deleteMuckkit('${item.id}')" class="text-red-400 p-1.5 bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
                     } else {
                         const memoState = expandedMemos[item.id];
                         const tagList = cleanedTags ? cleanedTags.split(',').filter(t => t.trim()).map(t => `<span class="bg-purple-50 text-purple-600 text-[10px] font-bold px-2 py-0.5 rounded-md mr-1 border border-purple-100">#${t.trim()}</span>`).join('') : `<span class="text-gray-300 text-[10px]">#태그 없음</span>`;
@@ -275,7 +331,7 @@
                 muckContainer.innerHTML += catHtml + `</div></div>`;
             });
 
-            // 2. 일정표 렌더링 (기존 로직 유지)
+            // 2. 일정표 렌더링
             const tripContainer = document.getElementById('trip-container');
             tripContainer.innerHTML = '';
             tripData.forEach(day => {
@@ -289,9 +345,16 @@
                 </div>`;
                 if (isOpen) {
                     let actHtml = `<div class="px-5 pb-6 pt-2 border-t border-purple-50/30"><div class="relative border-l-[1.5px] border-purple-100 ml-4 space-y-6 mt-4">`;
-                    day.activities.forEach(act => {
+                    day.activities.forEach((act, actIdx) => {
                         if (isEditMode) {
-                            actHtml += `<div class="relative pl-6"><div class="absolute -left-[17px] top-0 w-[34px] h-[34px] rounded-full bg-white border-2 border-purple-200 flex items-center justify-center z-10 cursor-pointer" onclick="window.changeIcon('${day.id}', '${act.id}')"><i data-lucide="${act.type}" class="w-4 h-4 text-purple-600"></i></div><div class="bg-slate-50 p-3 rounded-xl border"><div class="flex gap-2 mb-2"><input type="text" class="edit-input w-16 text-xs text-purple-500 font-bold" value="${act.time}" onchange="window.updateData('${day.id}', '${act.id}', 'time', this.value)"><input type="text" class="edit-input flex-1 text-sm font-bold" value="${act.title}" onchange="window.updateData('${day.id}', '${act.id}', 'title', this.value)"></div><input type="text" class="edit-input w-full text-xs text-gray-500 mb-2" value="${act.desc || ''}" onchange="window.updateData('${day.id}', '${act.id}', 'desc', this.value)" placeholder="설명"><button onclick="window.deleteActivity('${day.id}', '${act.id}')" class="text-red-400 text-[10px]">삭제</button></div></div>`;
+                            actHtml += `<div class="relative pl-6"><div class="absolute -left-[17px] top-0 w-[34px] h-[34px] rounded-full bg-white border-2 border-purple-200 flex items-center justify-center z-10 cursor-pointer" onclick="window.changeIcon('${day.id}', '${act.id}')"><i data-lucide="${act.type}" class="w-4 h-4 text-purple-600"></i></div><div class="bg-slate-50 p-3 rounded-xl border"><div class="flex gap-2 mb-2"><input type="text" class="edit-input w-16 text-xs text-purple-500 font-bold" value="${act.time}" onchange="window.updateData('${day.id}', '${act.id}', 'time', this.value)"><input type="text" class="edit-input flex-1 text-sm font-bold" value="${act.title}" onchange="window.updateData('${day.id}', '${act.id}', 'title', this.value)"></div><input type="text" class="edit-input w-full text-xs text-gray-500 mb-2" value="${act.desc || ''}" onchange="window.updateData('${day.id}', '${act.id}', 'desc', this.value)" placeholder="설명">
+                            <div class="flex justify-between items-center mt-2 border-t pt-2 border-gray-200/50">
+                                <div class="flex space-x-2">
+                                    <button onclick="window.moveActivity('${day.id}', '${act.id}', -1)" class="p-1 bg-white border rounded shadow-sm text-gray-400 hover:text-purple-500 disabled:opacity-30 disabled:shadow-none" ${actIdx === 0 ? 'disabled' : ''}><i data-lucide="arrow-up" class="w-3 h-3"></i></button>
+                                    <button onclick="window.moveActivity('${day.id}', '${act.id}', 1)" class="p-1 bg-white border rounded shadow-sm text-gray-400 hover:text-purple-500 disabled:opacity-30 disabled:shadow-none" ${actIdx === day.activities.length - 1 ? 'disabled' : ''}><i data-lucide="arrow-down" class="w-3 h-3"></i></button>
+                                </div>
+                                <button onclick="window.deleteActivity('${day.id}', '${act.id}')" class="text-red-400 text-[11px] font-bold px-2 py-1 bg-red-50 rounded">삭제</button>
+                            </div></div></div>`;
                         } else {
                             const memoState = expandedMemos[act.id];
                             const memoBadge = act.memo ? `<span class="absolute top-3 right-3 w-2 h-2 bg-purple-600 rounded-full ring-2 ring-white"></span>` : '';
@@ -308,8 +371,13 @@
             // 3. 체크리스트 렌더링
             const chkContainer = document.getElementById('checklist-container');
             chkContainer.innerHTML = `<div class="flex items-center mb-5"><div class="bg-purple-100 p-2 rounded-xl mr-3 shadow-sm"><i data-lucide="list-todo" class="w-5 h-5 text-purple-600"></i></div><h2 class="text-xl font-bold text-gray-800">체크리스트</h2></div>`;
-            checklistData.forEach(item => {
-                if (isEditMode) chkContainer.innerHTML += `<div class="flex items-center bg-slate-50 p-2.5 rounded-xl border border-slate-200 mb-2"><input type="text" class="edit-input flex-1 mr-3 text-sm" value="${item.text}" onchange="window.updateChecklistData('${item.id}', this.value)" placeholder="항목 입력"><button onclick="window.deleteChecklistItem('${item.id}')" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
+            checklistData.forEach((item, idx) => {
+                if (isEditMode) chkContainer.innerHTML += `<div class="flex items-center bg-slate-50 p-2.5 rounded-xl border border-slate-200 mb-2"><input type="text" class="edit-input flex-1 mr-3 text-sm" value="${item.text}" onchange="window.updateChecklistData('${item.id}', this.value)" placeholder="항목 입력">
+                    <div class="flex space-x-1 mr-2">
+                        <button onclick="window.moveChecklistItem('${item.id}', -1)" class="p-1 bg-white border rounded shadow-sm text-gray-400 hover:text-purple-500 disabled:opacity-30 disabled:shadow-none" ${idx === 0 ? 'disabled' : ''}><i data-lucide="arrow-up" class="w-3 h-3"></i></button>
+                        <button onclick="window.moveChecklistItem('${item.id}', 1)" class="p-1 bg-white border rounded shadow-sm text-gray-400 hover:text-purple-500 disabled:opacity-30 disabled:shadow-none" ${idx === checklistData.length - 1 ? 'disabled' : ''}><i data-lucide="arrow-down" class="w-3 h-3"></i></button>
+                    </div>
+                    <button onclick="window.deleteChecklistItem('${item.id}')" class="text-red-400 p-1.5 bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
                 else chkContainer.innerHTML += `<div class="flex items-center p-3 rounded-xl ${item.checked ? 'bg-slate-50' : 'bg-white shadow-sm border border-gray-100'} mb-2 cursor-pointer transition-colors" onclick="window.toggleChecklistItem('${item.id}')"><i data-lucide="${item.checked ? 'check-square' : 'square'}" class="w-5 h-5 mr-3 ${item.checked ? 'text-purple-400' : 'text-gray-300'}"></i><span class="${item.checked ? 'text-gray-400 line-through' : 'text-gray-800 font-medium'}">${item.text}</span></div>`;
             });
             if (isEditMode) chkContainer.innerHTML += `<button onclick="window.addChecklistItem()" class="w-full mt-3 py-2 border-2 border-dashed border-purple-200 text-purple-500 text-xs font-bold rounded-xl flex items-center justify-center"><i data-lucide="plus" class="w-4 h-4 mr-1"></i> 새 항목 추가</button>`;
